@@ -1,0 +1,6 @@
+precompiled/yolov5s_quantized.har filter=lfs diff=lfs merge=lfs -text
+precompiled/result_float.jpg filter=lfs diff=lfs merge=lfs -text
+precompiled/result_quantized.jpg filter=lfs diff=lfs merge=lfs -text
+precompiled/yolov5s.har filter=lfs diff=lfs merge=lfs -text
+precompiled/yolov5s.hef filter=lfs diff=lfs merge=lfs -text
+precompiled/yolov5s.onnx filter=lfs diff=lfs merge=lfs -text
