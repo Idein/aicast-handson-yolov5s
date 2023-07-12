@@ -1,65 +1,9 @@
-
 {
   "$schema": "https://actcast.io/schema/v8/data_schema_schema.json",
   "type": "array",
   "items": {
+    "properties": {},
     "type": "object",
-    "properties": {
-      "display": {
-        "title": "display",
-        "description": "output video to HDMI display",
-        "descriptions": {
-          "ja": "HDMIディスプレイへの描画を行う"
-        },
-        "type": "boolean",
-        "default": false
-      },
-      "rotation": {
-        "title": "camera rotation",
-        "description": "rotate camera capture (0 or 90 or -90 or 180)",
-        "descriptions": {
-          "ja": "撮影画像の回転(0, 90, -90, 180 のどれか)"
-        },
-        "type": "integer",
-        "default": 0
-      },
-      "hflip": {
-        "title": "horizontal flip camera",
-        "description": "flip camera capture",
-        "descriptions": {
-          "ja": "撮影画像の左右反転"
-        },
-        "type": "boolean",
-        "default": false
-      },
-      "exposure_time": {
-        "title": "[Capture] exposure time",
-        "description": "exposure time in ms (0 means auto)",
-        "descriptions": {
-          "ja": "カメラの露出時間（0で自動設定）"
-        },
-        "type": "integer",
-        "default": 0,
-        "minimum": 0
-      },
-      "thresh": {
-        "title": "object detection thresh",
-        "description": "object detection thresh",
-        "descriptions": {
-          "ja": "この閾値より大きい確率で検出された時に、画面に表示されます"
-        },
-        "type": "number",
-        "default": 0.65,
-        "minimum": 0.1,
-        "maximum": 1
-      }
-    },
-    "required": [
-      "display",
-      "hflip",
-      "rotation",
-      "exposure_time",
-      "thresh"
-    ]
+    "required": []
   }
 }
