@@ -46,7 +46,7 @@
         "ja": "この閾値より大きい確率で検出された時に、画面に表示されます"
       },
       "type": "number",
-      "default": 0.65,
+      "default": 0.35,
       "minimum": 0.1,
       "maximum": 1
     }

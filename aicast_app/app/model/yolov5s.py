@@ -1,3 +1,4 @@
+import os
 from ctypes import cdll
 from typing import List, Tuple
 
@@ -40,7 +41,9 @@ class LetterBoxDecoder():
 
 class YOLOv5s:
     def __init__(self, n_class: int, conf_thresh: float, input_img_size=Tuple[int, int]):
-        self.lib = cdll.LoadLibrary('./libhailomodels.so')
+        lib_path = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "../libhailomodels.so")
+        self.lib = cdll.LoadLibrary(lib_path)
         self.lib.init()
         self.out0 = np.zeros((80, 80, 3, n_class + 5), dtype=np.float32)
         self.out1 = np.zeros((40, 40, 3, n_class + 5), dtype=np.float32)

@@ -1,3 +1,4 @@
+import actfw_core
 from actfw_core.task import Consumer
 from actfw_raspberrypi.vc4 import Display
 from PIL import Image
