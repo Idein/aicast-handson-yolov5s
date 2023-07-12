@@ -7,6 +7,7 @@ aicastでyolov5s物体検出を行います。
 
 ## build
 ```
+cp ../precompiled/yolov5s.hef ./app/
 make
 actdk build
 ```
