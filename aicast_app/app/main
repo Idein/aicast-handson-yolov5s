@@ -1,0 +1,230 @@
+#!/usr/bin/python3
+import time
+
+import actfw_core
+import actfw_raspberrypi
+import cv2
+import numpy as np
+from actfw_core.capture import V4LCameraCapture
+from actfw_core.task import Consumer, Pipe
+from actfw_raspberrypi.vc4 import Display
+from model import Model
+from PIL import Image, ImageDraw, ImageFont
+from util.nms import nms
+from util.yolo_layer import YoloLayer
+
+(YOLO_WIDTH, YOLO_HEIGHT) = (640, 640)
+(CAPTURE_WIDTH, CAPTURE_HEIGHT) = (800, 600)  # capture image size
+(DISPLAY_WIDTH, DISPLAY_HEIGHT) = (800, 600)  # display area size
+
+class Predictor(Pipe):
+    def __init__(self, settings, capture_size):
+        super(Predictor, self).__init__()
+        self.settings = settings
+        self.capture_size = capture_size
+        self.model = Model()
+        self.yolo_layer = YoloLayer(n_class=2, conf_thresh=0.25, in_size=640)
+        img = cv2.imread("./test.jpg")
+        hoge = cv2.resize(img, (CAPTURE_WIDTH, CAPTURE_HEIGHT))
+        resized_img = cv2.resize(img, (640, 640))
+        input = cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB)
+        self.input = input.astype(dtype=np.uint8)
+        hoge = cv2.cvtColor(hoge, cv2.COLOR_BGR2RGB)
+
+        self.input_pil = Image.fromarray(hoge)
+
+    def proc(self, frame):
+        captured_image = Image.frombuffer(
+            'RGB', self.capture_size, frame.getvalue(), 'raw', 'RGB')
+        if self.capture_size != (CAPTURE_WIDTH, CAPTURE_HEIGHT):
+            w, h = self.capture_size
+            captured_image = captured_image.crop(
+                (w // 2 - CAPTURE_WIDTH // 2, h // 2 - CAPTURE_HEIGHT // 2, w // 2 + CAPTURE_WIDTH // 2, h // 2 + CAPTURE_HEIGHT // 2))
+        resized_image = captured_image.resize((YOLO_WIDTH, YOLO_HEIGHT))
+        input_image = np.asarray(resized_image)
+        val0, val1, val2 = self.model.infer(input_image)
+        a = cv2.cvtColor(input_image, cv2.COLOR_RGB2BGR)
+        cv2.imwrite("input.jpg", a)
+        # val0, val1, val2 = self.model.infer(self.input)
+        bboxes, scores, classes = self.yolo_layer.run([val0, val1, val2])
+        bboxes, scores, classes = nms(
+            bboxes, scores, classes, iou_threshold=0.45, per_class=True)
+        # return self.input_pil, bboxes, scores, classes
+        return captured_image, bboxes, scores, classes
+
+
+def paste_contain(canvas, src):
+    canvasW, canvasH = canvas.size
+    srcW, srcH = src.size
+    scale_w = canvasW / srcW
+    scale_h = canvasH / srcH
+    scale = min(scale_h, scale_w)
+    scaledW, scaledH = (int(srcW * scale), int(srcH * scale))
+    resized = src.resize((scaledW, scaledH))
+    offsetW = (canvasW - scaledW) // 2
+    offsetH = (canvasH - scaledH) // 2
+    canvas.paste(resized, (offsetW, offsetH))
+    return canvas
+
+
+class FPS(object):
+
+    """FPS Counter"""
+
+    def __init__(self, moving_average=30):
+        """
+        Args:
+                moving_average (int): recent N frames moving average
+        """
+        self.moving_average = moving_average
+        self.prev_time = time.time()
+        self.dtimes = []
+
+    def update(self):
+        """
+        Update FPS.
+        Returns:
+                fps: current fps
+        """
+        cur_time = time.time()
+        dtime = cur_time - self.prev_time
+        self.prev_time = cur_time
+        self.dtimes.append(dtime)
+        if len(self.dtimes) > self.moving_average:
+            self.dtimes.pop(0)
+        return self.get()
+
+    def get(self):
+        """
+        Get FPS.
+        Returns:
+                fps: current fps
+        """
+        if len(self.dtimes) == 0:
+            return None
+        else:
+            return len(self.dtimes) / sum(self.dtimes)
+
+
+class Drawer(Pipe):
+    def __init__(self):
+        super(Drawer, self).__init__()
+        self.font = ImageFont.truetype(
+            font='/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf', size=14)
+        self.fps = FPS(30)
+
+    def proc(self, inputs):
+        start = time.time()
+        # image, proto, boxes, classes, confs, masks = inputs
+        captured_image, bboxes, scores, classes = inputs
+
+        self.fps.update()
+        drawer = ImageDraw.Draw(captured_image)
+        fps = self.fps.get()
+        if fps is None:
+            fps_txt = 'FPS: N/A'
+        else:
+            fps_txt = 'FPS: {:>6.3f}'.format(fps)
+        drawer.text((0, 0), fps_txt, font=self.font, fill='white')
+        cols = [(255, 0, 0), (0, 255, 0)]
+        for box, score, cls in zip(bboxes, scores, classes):
+            x1, y1, x2, y2 = [int(b) for b in box]
+            x1 = x1 * CAPTURE_WIDTH / YOLO_WIDTH
+            x2 = x2 * CAPTURE_WIDTH / YOLO_WIDTH
+            y1 = y1 * CAPTURE_HEIGHT / YOLO_HEIGHT
+            y2 = y2 * CAPTURE_HEIGHT / YOLO_HEIGHT
+            drawer.rectangle((x1, y1, x2, y2), fill=None,
+                             outline=cols[cls], width=2)
+
+        return captured_image
+
+
+class Presenter(Consumer):
+    def __init__(self, cmd, use_display, display_size):
+        super(Presenter, self).__init__()
+        self.cmd = cmd
+        if use_display:
+            display = Display()
+            display_width, display_height = display.size()
+            scale = min(
+                float(display_width / display_size[0]), float(display_height / display_size[1]))
+            width = int(scale * display_size[0])
+            height = int(scale * display_size[1])
+            left = (display_width - width) // 2
+            upper = (display_height - height) // 2
+            self.preview_window = display.open_window(
+                (left, upper, width, height), display_size, 1000)
+            self.canvas = Image.new('RGB', display_size, (0, 0, 0))
+        else:
+            self.preview_window = None
+            self.canvas = None
+
+        self.prev_time = time.time()
+
+    def proc(self, inputs):
+        start = time.time()
+        pil_img = inputs
+
+        # actfw_core.heartbeat()
+        # self.cmd.update_image(pil_img)  # update Take Photo image
+        if self.preview_window is not None:
+            image = paste_contain(self.canvas, pil_img)
+            self.preview_window.blit(image.tobytes())
+            self.preview_window.update()
+        self.prev_time = time.time()
+
+
+def main():
+    # Actcast application
+    app = actfw_core.Application()
+
+    # Load act setting
+    settings = app.get_settings({
+        'rotation': 0,
+        'hflip': False,
+        'display': True,
+        'thresh': 0.30
+    })
+
+    # CommandServer (for `Take Photo` command)
+    cmd = actfw_core.CommandServer()
+    app.register_task(cmd)
+
+    # Capture task
+    cap = V4LCameraCapture(
+        '/dev/video0', (CAPTURE_WIDTH, CAPTURE_HEIGHT), 30)
+    capture_size = cap.capture_size()
+
+    def config(video):
+        # ignore result (requires camera capability)
+        video.set_rotation(settings['rotation'])
+        # ignore result (requires camera capability)
+        video.set_horizontal_flip(settings['hflip'])
+    cap.configure(config)
+    app.register_task(cap)
+
+    # Predictor task
+    conv = Predictor(settings, capture_size)
+    app.register_task(conv)
+
+    draw = Drawer()
+    app.register_task(draw)
+
+    pres = Presenter(
+        cmd,
+        use_display=settings['display'],
+        display_size=(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+    )
+    app.register_task(pres)
+
+    # Make task connection
+    cap.connect(conv)
+    conv.connect(draw)
+    draw.connect(pres)
+
+    # Start application
+    app.run()
+
+
+if __name__ == '__main__':
+    main()

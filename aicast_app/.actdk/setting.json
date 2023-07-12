@@ -1,0 +1,9 @@
+{
+  "app_id": "sa-aicast-tutorial-yolov5",
+  "app_server_id": 872,
+  "short_description": null,
+  "short_descriptions": {},
+  "target_types": [
+    "raspberrypi"
+  ]
+}

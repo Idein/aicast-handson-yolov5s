@@ -1,0 +1,25 @@
+{
+  "apt": [
+    "python3",
+    "python3-pil",
+    "python3-boto3",
+    "libv4l-0",
+    "libv4lconvert0",
+    "fbset",
+    "python3-pil",
+    "python3-numpy",
+    "python3-scipy",
+    "fonts-dejavu-core",
+  ],
+  "pip": [
+    "actfw-core == 2.2.0"
+  ],
+  "raspberrypi": {
+    "apt": [
+      "libraspberrypi0"
+    ],
+    "pip": [
+      "actfw-raspberrypi == 3.0.0"
+    ]
+  }
+}
