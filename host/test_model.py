@@ -39,7 +39,7 @@ def postprocess(resized_img, out0, out1, out2):
     
 def test_quantized():
     quantized_model = "../make_hef/yolov5s_quantized.har"
-    runner = ClientRunner(hw_arch='hailo8r', har_path=quantized_model)
+    runner = ClientRunner(hw_arch='hailo8', har_path=quantized_model)
     resized_img, input = get_input()
     out0, out1, out2 = net_eval(runner, SdkNumeric(), input)
     result_img = postprocess(resized_img, out0, out1, out2)
@@ -47,7 +47,7 @@ def test_quantized():
 
 def test_float():
     model = "../make_hef/yolov5s.har"
-    runner = ClientRunner(hw_arch='hailo8r', har_path=model)
+    runner = ClientRunner(hw_arch='hailo8', har_path=model)
     resized_img, input = get_input()
     input = input / 255.
     out0, out1, out2 = net_eval(runner, SdkNative(), input)
