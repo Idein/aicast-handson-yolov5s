@@ -1,1 +1,1 @@
-# sa-aicast-tutorial-yolov5s
+# ai castアプリ開発ハンズオン
