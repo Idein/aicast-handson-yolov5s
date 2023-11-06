@@ -1,6 +1,6 @@
-# sa-aicast-tutorial-yolov5s
+# aicast-handson-yolov5s app
 
-SA向けaicastハンズオンで作成したアプリです。  
+ai castハンズオン用に作成したアプリです。
 aicastでyolov5s物体検出を行います。
 
 <img src=./screenshot.jpg>
